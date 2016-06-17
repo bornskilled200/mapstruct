@@ -16,35 +16,28 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.mapstruct.ap.internal.model.common;
-
-import java.util.Date;
+package org.mapstruct.ap.internal.model.source;
 
 /**
- * Context object passed to conversion providers and built-in methods.
  *
- * @author Gunnar Morling
+ * @author Sjaak Derksen
  */
-public interface ConversionContext {
+public class FormattingParameters {
 
-    /**
-     * Returns the target type of this conversion.
-     *
-     * @return The target type of this conversion.
-     */
-    Type getTargetType();
+    private final String date;
+    private final String number;
 
-    /**
-     * Returns the date format if this conversion or built-in method is from String to a date type (e.g. {@link Date})
-     * or vice versa.
-     *
-     * @return The date format if this conversion or built-in method is from String to a date type. {@code null} is
-     *         returned for other types or if not given.
-     */
-    String getDateFormat();
+    public FormattingParameters(String date, String number) {
+        this.date = date;
+        this.number = number;
+    }
 
-    String getNumberFormat();
+    public String getDate() {
+        return date;
+    }
 
-    TypeFactory getTypeFactory();
+    public String getNumber() {
+        return number;
+    }
 
 }

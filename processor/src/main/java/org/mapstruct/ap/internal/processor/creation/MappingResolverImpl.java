@@ -43,8 +43,10 @@ import org.mapstruct.ap.internal.model.VirtualMappingMethod;
 import org.mapstruct.ap.internal.model.assignment.Assignment;
 import org.mapstruct.ap.internal.model.common.ConversionContext;
 import org.mapstruct.ap.internal.model.common.DefaultConversionContext;
+import org.mapstruct.ap.internal.model.HelperMethod;
 import org.mapstruct.ap.internal.model.common.Type;
 import org.mapstruct.ap.internal.model.common.TypeFactory;
+import org.mapstruct.ap.internal.model.source.FormattingParameters;
 import org.mapstruct.ap.internal.model.source.Method;
 import org.mapstruct.ap.internal.model.source.SelectionParameters;
 import org.mapstruct.ap.internal.model.source.SourceMethod;
@@ -103,18 +105,27 @@ public class MappingResolverImpl implements MappingResolver {
     }
 
     @Override
+    @SuppressWarnings("checkstyle:parameternumber")
     public Assignment getTargetAssignment(Method mappingMethod, String mappedElement, Type sourceType,
-        Type targetType, String targetPropertyName, String dateFormat, SelectionParameters selectionParameters,
-        String sourceReference, boolean preferUpdateMapping) {
+        Type targetType, String targetPropertyName, FormattingParameters formattingParameters,
+        SelectionParameters selectionParameters, String sourceReference, boolean preferUpdateMapping) {
 
         SelectionCriteria criteria =
             new SelectionCriteria( selectionParameters, targetPropertyName, preferUpdateMapping );
+
+        String dateFormat = null;
+        String numberFormat = null;
+        if ( formattingParameters != null ) {
+            dateFormat = formattingParameters.getDate();
+            numberFormat = formattingParameters.getNumber();
+        }
 
         ResolvingAttempt attempt = new ResolvingAttempt(
             sourceModel,
             mappingMethod,
             mappedElement,
             dateFormat,
+            numberFormat,
             sourceReference,
             criteria
         );
@@ -139,6 +150,7 @@ public class MappingResolverImpl implements MappingResolver {
             null,
             null,
             null,
+            null,
             criteria
         );
 
@@ -157,6 +169,7 @@ public class MappingResolverImpl implements MappingResolver {
         private final String mappedElement;
         private final List<SourceMethod> methods;
         private final String dateFormat;
+        private final String numberFormat;
         private final SelectionCriteria selectionCriteria;
         private final String sourceReference;
         private final boolean savedPreferUpdateMapping;
@@ -167,12 +180,13 @@ public class MappingResolverImpl implements MappingResolver {
         private final Set<VirtualMappingMethod> virtualMethodCandidates;
 
         private ResolvingAttempt(List<SourceMethod> sourceModel, Method mappingMethod, String mappedElement,
-            String dateFormat, String sourceReference, SelectionCriteria criteria) {
+            String dateFormat, String numberFormat, String sourceReference, SelectionCriteria criteria) {
 
             this.mappingMethod = mappingMethod;
             this.mappedElement = mappedElement;
             this.methods = filterPossibleCandidateMethods( sourceModel );
             this.dateFormat = dateFormat;
+            this.numberFormat = numberFormat;
             this.sourceReference = sourceReference;
             this.virtualMethodCandidates = new HashSet<VirtualMappingMethod>();
             this.selectionCriteria = criteria;
@@ -255,9 +269,13 @@ public class MappingResolverImpl implements MappingResolver {
             if ( conversionProvider == null ) {
                 return null;
             }
+            ConversionContext ctx = new DefaultConversionContext( typeFactory, messager, sourceType, targetType,
+                dateFormat, numberFormat );
 
-            ConversionContext ctx =
-                new DefaultConversionContext( typeFactory, messager, sourceType, targetType, dateFormat );
+            // add helper methods required in conversion
+            for ( HelperMethod helperMethod : conversionProvider.getRequiredHelperMethods( ctx ) ) {
+                usedVirtualMappings.add( new VirtualMappingMethod( helperMethod ) );
+            }
             return conversionProvider.to( ctx );
         }
 
@@ -289,7 +307,7 @@ public class MappingResolverImpl implements MappingResolver {
                 virtualMethodCandidates.add( new VirtualMappingMethod( matchingBuiltInMethod ) );
                 ConversionContext ctx = new DefaultConversionContext( typeFactory, messager,
                                                                       sourceType,
-                                                                      targetType, dateFormat );
+                                                                      targetType, dateFormat, numberFormat);
                 Assignment methodReference = AssignmentFactory.createMethodReference( matchingBuiltInMethod, ctx );
                 methodReference.setAssignment( AssignmentFactory.createDirect( sourceReference ) );
                 return methodReference;

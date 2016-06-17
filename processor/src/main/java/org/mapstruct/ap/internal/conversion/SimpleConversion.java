@@ -19,12 +19,14 @@
 package org.mapstruct.ap.internal.conversion;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.mapstruct.ap.internal.model.AssignmentFactory;
 import org.mapstruct.ap.internal.model.TypeConversion;
 import org.mapstruct.ap.internal.model.assignment.Assignment;
 import org.mapstruct.ap.internal.model.common.ConversionContext;
+import org.mapstruct.ap.internal.model.HelperMethod;
 import org.mapstruct.ap.internal.model.common.Type;
 
 /**
@@ -39,7 +41,7 @@ public abstract class SimpleConversion implements ConversionProvider {
         String toExpression = getToExpression( conversionContext );
         return AssignmentFactory.createTypeConversion(
             getToConversionImportTypes( conversionContext ),
-            Collections.<Type>emptyList(),
+            getToConversionExceptionTypes( conversionContext ),
             toExpression
         );
     }
@@ -49,10 +51,16 @@ public abstract class SimpleConversion implements ConversionProvider {
         String fromExpression = getFromExpression( conversionContext );
         return AssignmentFactory.createTypeConversion(
             getFromConversionImportTypes( conversionContext ),
-            Collections.<Type>emptyList(),
+            getFromConversionExceptionTypes( conversionContext ),
             fromExpression
         );
     }
+
+    @Override
+    public List<HelperMethod> getRequiredHelperMethods(ConversionContext conversionContext) {
+        return Collections.emptyList();
+    }
+
 
     /**
      * Returns the conversion string from source to target. The placeholder {@code <SOURCE>} can be used to represent a
@@ -83,7 +91,7 @@ public abstract class SimpleConversion implements ConversionProvider {
      * @return conversion types required in the "from" conversion
      */
     protected Set<Type> getFromConversionImportTypes(ConversionContext conversionContext) {
-        return Collections.<Type>emptySet();
+        return Collections.emptySet();
     }
 
     /**
@@ -95,6 +103,14 @@ public abstract class SimpleConversion implements ConversionProvider {
      * @return conversion types required in the "to" conversion
      */
     protected Set<Type> getToConversionImportTypes(ConversionContext conversionContext) {
-        return Collections.<Type>emptySet();
+        return Collections.emptySet();
+    }
+
+    protected List<Type> getToConversionExceptionTypes(ConversionContext conversionContext) {
+        return Collections.emptyList();
+    }
+
+    protected List<Type> getFromConversionExceptionTypes(ConversionContext conversionContext) {
+        return Collections.emptyList();
     }
 }

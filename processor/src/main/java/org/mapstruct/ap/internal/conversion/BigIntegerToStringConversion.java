@@ -18,33 +18,81 @@
  */
 package org.mapstruct.ap.internal.conversion;
 
-import static org.mapstruct.ap.internal.util.Collections.asSet;
 
 import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
+import org.mapstruct.ap.internal.model.HelperMethod;
 
 import org.mapstruct.ap.internal.model.common.ConversionContext;
 import org.mapstruct.ap.internal.model.common.Type;
+import static org.mapstruct.ap.internal.util.Collections.asSet;
 
 /**
  * Conversion between {@link BigInteger} and {@link String}.
  *
  * @author Gunnar Morling
  */
-public class BigIntegerToStringConversion extends SimpleConversion {
+public class BigIntegerToStringConversion extends AbstractNumberToStringConversion  {
+
+    public BigIntegerToStringConversion() {
+        super( true );
+    }
 
     @Override
     public String getToExpression(ConversionContext conversionContext) {
-        return "<SOURCE>.toString()";
+        if ( requiresDecimalFormat( conversionContext ) ) {
+            StringBuilder sb = new StringBuilder();
+            appendDecimalFormatter( sb, conversionContext );
+            sb.append( ".format( <SOURCE> )" );
+            return sb.toString();
+        }
+        else {
+            return "<SOURCE>.toString()";
+        }
     }
 
     @Override
     public String getFromExpression(ConversionContext conversionContext) {
-        return "new BigInteger( <SOURCE> )";
+        if ( requiresDecimalFormat( conversionContext ) ) {
+            StringBuilder sb = new StringBuilder();
+            sb.append( "( (BigDecimal) " );
+            appendDecimalFormatter( sb, conversionContext );
+            sb.append( ".parse( <SOURCE> )" );
+            sb.append( " ).toBigInteger()" );
+            return sb.toString();
+        }
+        else {
+            return "new BigInteger( <SOURCE> )";
+        }
     }
 
     @Override
     protected Set<Type> getFromConversionImportTypes(ConversionContext conversionContext) {
-        return asSet( conversionContext.getTypeFactory().getType( BigInteger.class ) );
+        if ( requiresDecimalFormat( conversionContext ) ) {
+            // no imports are required when decimal format is used.
+            return super.getFromConversionImportTypes( conversionContext );
+        }
+        else {
+            return asSet( conversionContext.getTypeFactory().getType( BigInteger.class ) );
+        }
+    }
+
+    @Override
+    public List<HelperMethod> getRequiredHelperMethods(ConversionContext conversionContext) {
+        HelperMethod helperMethod = new CreateDecimalFormat( conversionContext.getTypeFactory() );
+        return Arrays.asList( helperMethod );
+    }
+
+    private void appendDecimalFormatter(StringBuilder sb, ConversionContext conversionContext) {
+        sb.append( "createDecimalFormat( " );
+        if ( conversionContext.getNumberFormat() != null ) {
+            sb.append( "\"" );
+            sb.append( conversionContext.getNumberFormat() );
+            sb.append( "\"" );
+        }
+
+        sb.append( " )" );
     }
 }
